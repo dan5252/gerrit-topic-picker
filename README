@@ -1,4 +1,0 @@
-
-Usage:
-
-MY_REPO_ROOT_DIR=/path/to/repo/ python3 topic.py repo -t my-topic -g https://review.opendev.org/
