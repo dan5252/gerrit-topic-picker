@@ -33,6 +33,7 @@ def queryChanges(args):
 
     if args.verbose:
         print('Query {}'.format(url_query))
+        print('Query for topic {}'.format(args.topic))
 
     # GET /changes/?q=topic:"my-topic"&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
     params = {'q': 'topic:"{}"'.format(args.topic),
@@ -110,8 +111,11 @@ def handleRepo(args):
         # Get project of the change
         project = json_change['project']
         project_name, repository_name = project.split('/')
-        print('Detected change {} project {} repository {}'.format(
-            json_change.get('_number', ''), project_name, repository_name))
+        print('Detected change number {} ID {} project {} repository {}'
+              ''.format(json_change.get('_number', ''),
+                        json_change.get('change_id', ''),
+                        project_name,
+                        repository_name))
         download_command = extractDownloadCommand(args, json_change)
 
         # Get path on disk
