@@ -103,10 +103,8 @@ def extractDownloadCommand(args, change):
     command = command.get('commands')
     command = command.get(args.download_strategy, None)
     if not command:
-        raise Exception("Can't get command for {} downlaod strategy!".format(
+        raise Exception("Can't get command for {} download strategy!".format(
             args.download_strategy))
-    # TODO for cherry-pick need to check if it already exists
-    # command = command.get('Cherry Pick')
 
     return command
 
@@ -192,7 +190,7 @@ def handleRepo(args):
             print("Changed working directory to: {}".format(os.getcwd()))
 
             # Check if the change should be skipped
-            if checkSkipChange(args, change_id):
+            if args.avoid_re_download and checkSkipChange(args, change_id):
                 print('Skipping {}'.format(change_id))
                 continue
 
@@ -247,6 +245,9 @@ def main():
                              help='Status of the review',
                              default=[],
                              choices=['open', 'merged', 'abandoned'], required=False)
+    repo_parser.add_argument('--avoid-re-download', '-ard', action='store_true',
+                             help='Avoid re-downloading a commit if it already exists in the git repo.',
+                             default=False, required=False)
 
     repo_parser.set_defaults(handle=handleRepo)
 
