@@ -30,7 +30,9 @@ def queryChanges(args):
     # TODO: only open, only merged, both
     query = 'changes/'
     url_query = urllib.parse.urljoin(args.gerrit, query)
-    print(url_query)
+
+    if args.verbose:
+        print('Query {}'.format(url_query))
 
     # GET /changes/?q=topic:"my-topic"&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
     params = {'q': 'topic:"{}"'.format(args.topic),
@@ -96,6 +98,8 @@ def handleRepo(args):
         print('{} does not exist'.format(args.repo_root_dir))
         exit(1)
 
+    print('Using gerrit {}'.format(args.gerrit))
+
     # Get changes
     json_changes = queryChanges(args)
 
@@ -103,7 +107,8 @@ def handleRepo(args):
         # Get project of the change
         project = json_change['project']
         project_name, repository_name = project.split('/')
-        print('Detected project {} repository {}'.format(project_name, repository_name))
+        print('Detected change {} project {} repository {}'.format(
+            json_change.get('_number', ''), project_name, repository_name))
         download_command = extractDownloadCommand(json_change)
 
         # Get path on disk
@@ -119,13 +124,14 @@ def handleRepo(args):
             try:
                 cmd = download_command.split(' ')
                 cmd = [x.strip('"') for x in cmd]
-                print('Executing {}'.format(cmd))
+                print('Command to be executed {}'.format(cmd))
 
-                output = subprocess.check_output(
-                    cmd
-                    , errors="strict").strip()
+                if not args.dry_run:
+                    output = subprocess.check_output(
+                        cmd
+                        , errors="strict").strip()
 
-                print('Executed: \n{}'.format(output))
+                    print('Executed: \n{}'.format(output))
             except Exception as e:
                 pprint.pprint(e)
                 exit(1)
@@ -155,6 +161,8 @@ def main():
                              default=os.getenv('MY_REPO_ROOT_DIR', ''))
     repo_parser.add_argument('--topic', '-t', help='Gerrit topic', required=True)
     repo_parser.add_argument('--gerrit', '-g', help='Gerrit link', required=True)
+    repo_parser.add_argument('--dry-run', action='store_true', default=False, help='''Simulate, but don't sync''',
+                             required=False)
 
     repo_parser.set_defaults(handle=handleRepo)
 
