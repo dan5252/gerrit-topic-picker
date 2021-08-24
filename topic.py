@@ -71,15 +71,17 @@ def findPathForRepo(args, project_name, repository_name):
     return project_path
 
 
-def extractDownloadCommand(change):
+def extractDownloadCommand(args, change):
     rev = change.get('revisions')
     key = list(rev.keys())[0]
     command = rev.get(key)
     command = command.get('fetch')
     command = command.get('anonymous http')
     command = command.get('commands')
-    # TODO add a configurable strategy for this (pull/cherry-pick/etc..)
-    command = command.get('Pull')
+    command = command.get(args.strategy, None)
+    if not command:
+        raise Exception('''Can't get command for {} strategy!'''.format(
+            args.strategy))
     # TODO for cherry-pick need to check if it already exists
     # command = command.get('Cherry Pick')
 
@@ -99,6 +101,7 @@ def handleRepo(args):
         exit(1)
 
     print('Using gerrit {}'.format(args.gerrit))
+    print('Using strategy {}'.format(args.strategy))
 
     # Get changes
     json_changes = queryChanges(args)
@@ -109,7 +112,7 @@ def handleRepo(args):
         project_name, repository_name = project.split('/')
         print('Detected change {} project {} repository {}'.format(
             json_change.get('_number', ''), project_name, repository_name))
-        download_command = extractDownloadCommand(json_change)
+        download_command = extractDownloadCommand(args, json_change)
 
         # Get path on disk
         project_path = findPathForRepo(args, project_name, repository_name)
@@ -163,6 +166,9 @@ def main():
     repo_parser.add_argument('--gerrit', '-g', help='Gerrit link', required=True)
     repo_parser.add_argument('--dry-run', action='store_true', default=False, help='''Simulate, but don't sync''',
                              required=False)
+    repo_parser.add_argument('--strategy', '-s',
+                             help='Strategy to download the patch: Pull, Cherry Pick, Branch, Checkout',
+                             choices=['Pull', 'Cherry Pick', 'Branch', 'Checkout'], required=True)
 
     repo_parser.set_defaults(handle=handleRepo)
 
