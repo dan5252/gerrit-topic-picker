@@ -111,6 +111,44 @@ def extractDownloadCommand(args, change):
     return command
 
 
+def checkSkipChange(args, change_id, max_search_depth=100):
+    """ Determine if the change should be skipped.
+    Determine based on the Change-Id: in commit message.
+
+    @param args: Parsed args
+    @param change_id: A gerrit Change-Id to be skipped
+    @param max_search_depth: Limit the search depth to a certain number
+                             to speed up things.
+
+    @return: True if the change should be skipped
+    """
+    cmd = ['git', 'rev-list', 'HEAD', '--count']
+    output = subprocess.check_output(
+        cmd
+        , errors="strict").strip()
+    rev_count = int(output)
+
+    if args.verbose >= 6:
+        print(rev_count)
+
+    # TODO param for max_search_depth
+    for i in range(min(rev_count - 1, max_search_depth)):
+        cmd = ['git', 'rev-list', '--format=%B', '--max-count',
+               '1', 'HEAD~{}'.format(i)]
+        output = subprocess.check_output(
+            cmd
+            , errors="strict").strip()
+        if args.verbose >= 6:
+            print(output)
+
+        # TODO avoid false positives, search just last occurrence
+        if 'Change-Id: {}'.format(change_id) in output:
+            print('Found {} in git log'.format(change_id))
+            return True
+
+    return False
+
+
 def handleRepo(args):
     # TODO validations
     print('Using manifest {}'.format(args.manifest))
@@ -132,23 +170,31 @@ def handleRepo(args):
 
     for json_change in json_changes:
         # Get project of the change
-        project = json_change['project']
+        project = json_change.get('project')
         project_name, repository_name = project.split('/')
+        change_id = json_change.get('change_id')
         print('Detected change number {} ID {} project {} repository {}'
               ''.format(json_change.get('_number', ''),
-                        json_change.get('change_id', ''),
+                        change_id,
                         project_name,
                         repository_name))
-        download_command = extractDownloadCommand(args, json_change)
 
         # Get path on disk
         project_path = findPathForRepo(args, project_name, repository_name)
+
+        # Get download command
+        download_command = extractDownloadCommand(args, json_change)
 
         # TODO decide if ignore errors or raise exception
         if project_path:
             # cd to path
             os.chdir(project_path)
             print("Changed working directory to: {}".format(os.getcwd()))
+
+            # Check if the change should be skipped
+            if checkSkipChange(args, change_id):
+                print('Skipping {}'.format(change_id))
+                continue
 
             # Apply commit
             cmds = download_command.split('&&')
