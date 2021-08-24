@@ -48,7 +48,7 @@ def queryChanges(args):
     query = 'changes/'
     url_query = urllib.parse.urljoin(args.gerrit, query)
 
-    if args.verbose:
+    if args.verbose >= 1:
         print('Query {}'.format(url_query))
         print('Query for topic {}'.format(args.topic))
 
@@ -66,7 +66,7 @@ def queryChanges(args):
     content = responseCorrection(r.text)
     data = json.loads(content)
 
-    if args.verbose:
+    if args.verbose >= 5:
         pprint.pprint(data)
 
     return data
@@ -79,7 +79,7 @@ def findPathForRepo(args, project_name, repository_name):
     tree = ET.parse(args.manifest)
     root = tree.getroot()
     for element in root.findall('project'):
-        if args.verbose:
+        if args.verbose >= 5:
             print(element.tag, element.attrib)
 
         # TODO add parameter for remote name, default to project_name here
@@ -173,8 +173,7 @@ def main():
     parser = argparse.ArgumentParser(add_help=False, description='Tool to sync a Gerrit topic',
                                      epilog='''Use %(prog)s subcommand --help to get help for all of parameters''')
 
-    # TODO add verbosity level
-    parser.add_argument('--verbose', '-v', action='store_true', help='verbose mode')
+    parser.add_argument('--verbose', '-v', action='count', default=0, help='Verbosity level')
 
     subparsers = parser.add_subparsers(title='Repository type control Commands',
                                        help='...')
