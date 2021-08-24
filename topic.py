@@ -124,17 +124,19 @@ def handleRepo(args):
             print("Changed working directory to: {}".format(os.getcwd()))
 
             # Apply commit
+            cmds = download_command.split('&&')
+            print('Commands to be executed {}'.format(cmds))
             try:
-                cmd = download_command.split(' ')
-                cmd = [x.strip('"') for x in cmd]
-                print('Command to be executed {}'.format(cmd))
+                for cmd in list(cmds):
+                    cmd = cmd.strip('"')
+                    print('Command to be executed {}'.format(cmd))
 
-                if not args.dry_run:
-                    output = subprocess.check_output(
-                        cmd
-                        , errors="strict").strip()
+                    if not args.dry_run:
+                        output = subprocess.check_output(
+                            cmd
+                            , errors="strict", shell=True).strip()
 
-                    print('Executed: \n{}'.format(output))
+                        print('Executed: \n{}'.format(output))
             except Exception as e:
                 pprint.pprint(e)
                 exit(1)
