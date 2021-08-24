@@ -26,8 +26,25 @@ def handleList(args):
     pass
 
 
+def addGerritQuery(query_string, field_name, target_values):
+    """ Add a query for a specific field.
+    """
+    if not type(target_values) is list:
+        target_values = [target_values]
+
+    if len(target_values) == 0:
+        return query_string
+    elif len(target_values) == 1:
+        return '{} {}:"{}"'.format(query_string, field_name, target_values[0])
+    else:
+        assemble = '{} ({}:"{}"'.format(query_string, field_name, target_values[0])
+        for val in target_values[1:]:
+            assemble = '{} OR {}:"{}"'.format(assemble, field_name, val)
+        assemble = assemble + ')'
+        return assemble
+
+
 def queryChanges(args):
-    # TODO: only open, only merged, both
     query = 'changes/'
     url_query = urllib.parse.urljoin(args.gerrit, query)
 
@@ -36,7 +53,12 @@ def queryChanges(args):
         print('Query for topic {}'.format(args.topic))
 
     # GET /changes/?q=topic:"my-topic"&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
-    params = {'q': 'topic:"{}"'.format(args.topic),
+    # GET /changes/?q=topic:"my-topic"+status:open&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
+    # GET /changes/?q=topic:"my-topic"+(status:open OR status:merged)&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
+    query_string = addGerritQuery('', 'topic', args.topic)
+    query_string = addGerritQuery(query_string, 'status', args.status)
+    print('Query string {}'.format(query_string))
+    params = {'q': query_string,
               'o': ['CURRENT_REVISION', 'DOWNLOAD_COMMANDS']}
 
     # TODO filter branch
@@ -79,10 +101,10 @@ def extractDownloadCommand(args, change):
     command = command.get('fetch')
     command = command.get('anonymous http')
     command = command.get('commands')
-    command = command.get(args.strategy, None)
+    command = command.get(args.download_strategy, None)
     if not command:
-        raise Exception('''Can't get command for {} strategy!'''.format(
-            args.strategy))
+        raise Exception("Can't get command for {} downlaod strategy!".format(
+            args.download_strategy))
     # TODO for cherry-pick need to check if it already exists
     # command = command.get('Cherry Pick')
 
@@ -102,7 +124,8 @@ def handleRepo(args):
         exit(1)
 
     print('Using gerrit {}'.format(args.gerrit))
-    print('Using strategy {}'.format(args.strategy))
+    print('Using download strategy {}'.format(args.download_strategy))
+    print('Using review statuses {}'.format(args.status))
 
     # Get changes
     json_changes = queryChanges(args)
@@ -172,9 +195,13 @@ def main():
     repo_parser.add_argument('--gerrit', '-g', help='Gerrit link', required=True)
     repo_parser.add_argument('--dry-run', action='store_true', default=False, help='''Simulate, but don't sync''',
                              required=False)
-    repo_parser.add_argument('--strategy', '-s',
+    repo_parser.add_argument('--download-strategy', '-ds',
                              help='Strategy to download the patch: Pull, Cherry Pick, Branch, Checkout',
                              choices=['Pull', 'Cherry Pick', 'Branch', 'Checkout'], required=True)
+    repo_parser.add_argument('--status', '-s', action='append',
+                             help='Status of the review',
+                             default=[],
+                             choices=['open', 'merged', 'abandoned'], required=False)
 
     repo_parser.set_defaults(handle=handleRepo)
 
