@@ -45,3 +45,5 @@ Example usage for specifying a script that could automatically fix merge conflic
 ## Future Work
 
 - Pick relation chain
+- Improve merge fixer logging
+- Fully automate merge fixer

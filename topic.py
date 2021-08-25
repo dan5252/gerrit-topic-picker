@@ -267,14 +267,26 @@ def runMergeFixer(args, project_path, tool_cwd):
 
 
 def run_cmd(cmd, shell=False, halt_on_exception=False):
+    # TODO improve logging, but not worth at the moment.
+    # LIMITATION
+    # Now we could automate up to doing the cherry-pick continue.
+    # `git cherry-pick --continue` opens a text editor and freezes terminal
+    # Need to figure a way to go around that.
     try:
         print('Running {}:\n'.format(cmd))
 
-        output = subprocess.check_output(
-            cmd
-            , errors="strict", shell=shell).strip()
+        p1 = subprocess.Popen(
+            cmd,
+            errors="strict",
+            shell=shell,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True)
+        output, error = p1.communicate()
         print('{}\n'.format(output))
         found_exception = False
+        if p1.returncode != 0:
+            found_exception = True
     except Exception as e:
         found_exception = True
         pprint.pprint(e)
@@ -284,7 +296,7 @@ def run_cmd(cmd, shell=False, halt_on_exception=False):
         if not found_exception:
             return SUCCESS, output
 
-    return FAILURE, None
+    return FAILURE, output
 
 
 def main():
