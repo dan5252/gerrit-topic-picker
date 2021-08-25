@@ -20,6 +20,9 @@ import requests
 SUCCESS = 0
 FAILURE = 1
 
+# Cache the repo manifest file information
+REPO_MANIFEST = {}
+
 
 def responseCorrection(content):
     return content[5:]
@@ -76,8 +79,22 @@ def queryChanges(args):
 
 
 def findPathForRepo(args, project_name, repository_name):
-    project_path = ''
-    # TODO parse once
+    """ Given a project name and repository name search in the
+    repo manifest file for it's disk location relative to repo root dir.
+
+    @param args:
+    @param project_name:
+    @param repository_name:
+    @return:
+    """
+    project_path = REPO_MANIFEST.get((project_name, repository_name), '')
+
+    # Use cached
+    if project_path:
+        if args.verbose >= 1:
+            print('Use cached project path {}'.format(project_path))
+        return project_path
+
     # Parse the xml
     tree = ET.parse(args.manifest)
     root = tree.getroot()
@@ -93,6 +110,8 @@ def findPathForRepo(args, project_name, repository_name):
             if path.split('/')[-1] == repository_name:
                 project_path = os.path.join(args.repo_root_dir, path)
                 print('Disk path {}'.format(project_path))
+                # Cache entry
+                REPO_MANIFEST[(project_name, repository_name)] = project_path
 
     return project_path
 
