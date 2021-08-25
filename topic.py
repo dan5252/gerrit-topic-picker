@@ -17,6 +17,9 @@ import xml.etree.ElementTree as ET
 
 import requests
 
+SUCCESS = 0
+FAILURE = 1
+
 
 def responseCorrection(content):
     return content[5:]
@@ -147,8 +150,11 @@ def checkSkipChange(args, change_id, max_search_depth=100):
     return False
 
 
-def handleRepo(args):
-    # TODO validations
+def validateHandleRepoArgs(args):
+    """ Validate args for repositories that use Repo tool
+
+    @param args: Args from ArgumentParser
+    """
     print('Using manifest {}'.format(args.manifest))
     if not os.path.exists(args.manifest):
         print('{} does not exist'.format(args.manifest))
@@ -162,6 +168,23 @@ def handleRepo(args):
     print('Using gerrit {}'.format(args.gerrit))
     print('Using download strategy {}'.format(args.download_strategy))
     print('Using review statuses {}'.format(args.status))
+
+    if args.merge_fixer:
+        if os.path.exists(args.merge_fixer):
+            print('Using script to attempt automatic merge conflicts '
+                  'resolution: {}'.format(args.merge_fixer))
+        else:
+            print('File {} does not exist'.format(args.merge_fixer))
+            exit(1)
+
+
+def handleRepo(args):
+    """ Main logic for repositories that use repo tool
+
+    @param args: Args from ArgumentParser
+    """
+    validateHandleRepoArgs(args)
+    tool_cwd = os.getcwd()
 
     # Get changes
     json_changes = queryChanges(args)
@@ -210,7 +233,58 @@ def handleRepo(args):
                         print('Executed: \n{}'.format(output))
             except Exception as e:
                 pprint.pprint(e)
-                exit(1)
+                if args.merge_fixer and not args.dry_run:
+                    print('Using merge fixer!')
+                    runMergeFixer(args, project_path, tool_cwd)
+                else:
+                    exit(1)
+
+
+def runMergeFixer(args, project_path, tool_cwd):
+    # TODO support arbitrary location of script
+
+    # Copy fixer to cwd
+    src_fixer = '{}'.format(os.path.join(tool_cwd, args.merge_fixer))
+    dst_fixer = '{}'.format(os.path.join(project_path, args.merge_fixer))
+    cmd = ['cp', src_fixer, dst_fixer]
+    run_cmd(cmd, shell=False, halt_on_exception=True)
+
+    # Fix script permissions
+    os.chmod(dst_fixer, 0o755)
+
+    # Run fixer
+    cmd = [dst_fixer]
+    fixer_rc, _ = run_cmd(cmd, shell=False, halt_on_exception=False)
+
+    # Remove fixer
+    cmd = ['rm', dst_fixer]
+    run_cmd(cmd, shell=False, halt_on_exception=True)
+
+    # Abort in case of fixer run failure
+    if fixer_rc == FAILURE:
+        print('Fixer failed, aborting!!!')
+        exit(1)
+
+
+def run_cmd(cmd, shell=False, halt_on_exception=False):
+    try:
+        print('Running {}:\n'.format(cmd))
+
+        output = subprocess.check_output(
+            cmd
+            , errors="strict", shell=shell).strip()
+        print('{}\n'.format(output))
+        found_exception = False
+    except Exception as e:
+        found_exception = True
+        pprint.pprint(e)
+    finally:
+        if found_exception and halt_on_exception:
+            exit(1)
+        if not found_exception:
+            return SUCCESS, output
+
+    return FAILURE, None
 
 
 def main():
@@ -248,6 +322,8 @@ def main():
     repo_parser.add_argument('--avoid-re-download', '-ard', action='store_true',
                              help='Avoid re-downloading a commit if it already exists in the git repo.',
                              default=False, required=False)
+    repo_parser.add_argument('--merge-fixer', '-mf', help='Script to be run to attempt auto merge fixing',
+                             required=False)
 
     repo_parser.set_defaults(handle=handleRepo)
 

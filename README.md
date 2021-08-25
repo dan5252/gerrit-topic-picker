@@ -30,3 +30,18 @@ Example usage in real life:
     # resolve the cherry-pick merge errors
     # then invoke the tool againg with the same parameters
     # repeat the process until all commits are synced
+
+Example usage for specifying a script that could automatically fix merge conflicts:
+
+    MY_REPO_ROOT_DIR=/here \
+        python3 topic.py repo \
+        --topic my-topic \
+        --gerrit https://my.gerrit/ \
+        --download-strategy "Cherry Pick" \
+        --status open \
+        --avoid-re-download \
+        --merge-fixer dummy_merge_fixer.py
+
+## Future Work
+
+- Pick relation chain
