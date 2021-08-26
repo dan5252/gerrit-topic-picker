@@ -42,16 +42,29 @@ if rc != SUCCESS:
 
 if CHERRY_PICKING in out:
     print('Detected cherry-picking {}'.format(os.getcwd()))
-    for line in out.splitlines():
-        if BOTH_ADDED in line or BOTH_MODIFIED in line:
+    for status_line in out.splitlines():
+        if BOTH_ADDED in status_line or BOTH_MODIFIED in status_line:
             # Get file
-            file = line.split(':')[1].strip()
-            print('Identified file {}'.format(file))
+            conflict_file = status_line.split(':')[1].strip()
+            print('Identified conflict file {}'.format(conflict_file))
 
-            # TODO remove the artifact lines for merge (<<<,===,>>>)
+            with open(conflict_file, "r+") as f:
+                # Need to buffer, so file pointer is reset
+                buffer = f.readlines()
+                f.seek(0)
+                for code_line in buffer:
+                    # TODO better matching
+                    if not code_line.startswith('<<<<<<< ') and \
+                            not (code_line.startswith('=======')) and \
+                            not code_line.startswith('>>>>>>> '):
+                        f.write(code_line)
+                    else:
+                        print('Dropping :{}'.format(code_line))
+
+                f.truncate()
 
             # Git add file
-            rc, out = run_cmd(['git', 'add', file])
+            rc, out = run_cmd(['git', 'add', conflict_file])
             if rc != SUCCESS:
                 exit(rc)
 
@@ -62,4 +75,5 @@ if CHERRY_PICKING in out:
             if rc != SUCCESS:
                 exit(rc)
 
+# Drop when continue is automated
 exit(1)

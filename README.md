@@ -42,6 +42,28 @@ Example usage for specifying a script that could automatically fix merge conflic
         --avoid-re-download \
         --merge-fixer dummy_merge_fixer.py
 
+Example real life usage with merge fixer that picks changes from both sources:
+
+    MY_REPO_ROOT_DIR=/here \
+        python3 topic.py repo \
+        --topic my-topic \
+        --gerrit https://my.gerrit/ \
+        --download-strategy "Cherry Pick" \
+        --status open \
+        --avoid-re-download \
+        --merge-fixer pick_both_merge_fixer.py
+
+Example usage for syncing open and merged reviews:
+
+    MY_REPO_ROOT_DIR=/here \
+        python3 topic.py repo \
+        --topic my-topic \
+        --gerrit https://my.gerrit/ \
+        --download-strategy "Cherry Pick" \
+        --status open \
+        --status merged \
+        --avoid-re-download
+
 ## Future Work
 
 - Pick relation chain
