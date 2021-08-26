@@ -1,5 +1,33 @@
 # gerrit-topic-picker
 
+## Features
+
+- Can filter branch
+
+      topic.py --branch/-b first --branch/-b second ... --branch/-b last
+
+- Can filter status
+
+      topic.py --status/-s open --status/-s merged .. --status/-s whatever
+
+- Can avoid re-downloading a review if a commit with the Change-Id is present
+
+      topic.py --avoid-re-download/-ard
+
+- Specify just one topic
+
+      topic.py --topic target-topic
+      topic.py -t target-topic
+
+- Specify gerrit link
+
+      topic.py --gerrit/-g https://my.gerrit/
+
+- Specify download strategy
+
+      topic.py --download-strategy/-ds "Cherry Pick"
+      topic.py --download-strategy/-ds "Pull"
+
 ## Usage for repositories managed by repo tool:
 
 Set the `MY_REPO_ROOT_DIR` environment variable to the repo root directory (the one which contains the `.repo` dir)
