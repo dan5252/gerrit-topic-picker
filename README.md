@@ -1,6 +1,6 @@
 # gerrit-topic-picker
 
-## Features
+## Features for repositories managed by repo tool
 
 - Can filter branch
 
@@ -27,6 +27,12 @@
 
       topic.py --download-strategy/-ds "Cherry Pick"
       topic.py --download-strategy/-ds "Pull"
+
+- Specify script to be run in case of merge conflict. Script will be copied to the git project path and invoked there.
+
+      topic.py --merge-fixer my_script.sh
+      topic.py --merge-fixer my_script.py
+      topic.py --merge-fixer my_script.runnable
 
 ## Usage for repositories managed by repo tool:
 
