@@ -54,20 +54,18 @@ def queryChanges(args):
     query = 'changes/'
     url_query = urllib.parse.urljoin(args.gerrit, query)
 
-    if args.verbose >= 1:
-        print('Query {}'.format(url_query))
-        print('Query for topic {}'.format(args.topic))
+    print('Query {}'.format(url_query))
 
     # GET /changes/?q=topic:"my-topic"&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
     # GET /changes/?q=topic:"my-topic"+status:open&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
     # GET /changes/?q=topic:"my-topic"+(status:open OR status:merged)&o=CURRENT_REVISION&o=DOWNLOAD_COMMANDS HTTP/1.0
     query_string = addGerritQuery('', 'topic', args.topic)
     query_string = addGerritQuery(query_string, 'status', args.status)
+    query_string = addGerritQuery(query_string, 'branch', args.branch)
     print('Query string {}'.format(query_string))
     params = {'q': query_string,
               'o': ['CURRENT_REVISION', 'DOWNLOAD_COMMANDS']}
 
-    # TODO filter branch
     r = requests.get(url=url_query, params=params)
     content = responseCorrection(r.text)
     data = json.loads(content)
@@ -350,6 +348,9 @@ def main():
                              help='Status of the review',
                              default=[],
                              choices=['open', 'merged', 'abandoned'], required=False)
+    repo_parser.add_argument('--branch', '-b', action='append',
+                             help='Git branches of the review',
+                             default=[], required=False)
     repo_parser.add_argument('--avoid-re-download', '-ard', action='store_true',
                              help='Avoid re-downloading a commit if it already exists in the git repo.',
                              default=False, required=False)
