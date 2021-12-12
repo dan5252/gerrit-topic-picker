@@ -140,7 +140,7 @@ def checkSkipChange(args, change_id, max_search_depth=100):
 
     @return: True if the change should be skipped
     """
-    cmd = ['git', 'rev-list', 'HEAD', '--count']
+    cmd = ['git', 'rev-list', 'HEAD', '--count', '--no-merges']
     output = subprocess.check_output(
         cmd
         , errors="strict").strip()
