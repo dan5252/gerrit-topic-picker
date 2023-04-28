@@ -105,7 +105,9 @@ def findPathForRepo(args, project_name, repository_name):
         path = element.get('path')
 
         if remote_name == project_name:
-            if path.split('/')[-1] == repository_name:
+            if path.split('/')[-1] == repository_name or \
+                    path == 'stx-tools' and repository_name == 'tools' or \
+                    path == 'cgcs-root' and repository_name == 'root':
                 project_path = os.path.join(args.repo_root_dir, path)
                 print('Disk path {}'.format(project_path))
                 # Cache entry
